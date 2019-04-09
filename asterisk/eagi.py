@@ -6,7 +6,7 @@ from websocket import create_connection
 import json
 
 AUDIO_FD = 3
-CONTENT_TYPE = 'audio/l16; rate=16000; channels=1'
+CONTENT_TYPE = 'audio/l16; rate=8000; channels=1'
 ACCEPT = 'audio/pcm'
 
 
@@ -32,7 +32,7 @@ def startAGI():
     ws = create_connection("wss://api.alphacephei.com/asr/en")
     try:
         while True:
-            data = os.read(AUDIO_FD, 16000)
+            data = os.read(AUDIO_FD, 8000)
             if not data:
                 break
             process_chunk(agi, ws, data)
