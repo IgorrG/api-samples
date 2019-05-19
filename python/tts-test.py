@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 import requests
-import os
 
 r = requests.post("https://api.alphacephei.com/tts", data={'text' : "Hello world!"})
 fn = open("tts.wav", "wb")
