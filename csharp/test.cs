@@ -10,42 +10,47 @@ using System.Net.WebSockets;
 
 public class ASRTest
 {
-   public static void ProcessData(ClientWebSocket ws, byte[] data, int count) {
-        ws.SendAsync(new ArraySegment<byte>(data, 0, count), WebSocketMessageType.Binary, true, CancellationToken.None).Wait();
+   async Task RecieveResult(ClientWebSocket ws) {
         byte[] result = new byte[4096];
         Task<WebSocketReceiveResult> receiveTask = ws.ReceiveAsync(new ArraySegment<byte>(result), CancellationToken.None);
-        receiveTask.Wait();
+        await receiveTask;
         var receivedString = Encoding.UTF8.GetString(result, 0, receiveTask.Result.Count);
         Console.WriteLine("Result {0}", receivedString);
    }
 
-   public static void ProcessFinalData(ClientWebSocket ws) {
+   async Task ProcessData(ClientWebSocket ws, byte[] data, int count) {
+        await ws.SendAsync(new ArraySegment<byte>(data, 0, count), WebSocketMessageType.Binary, true, CancellationToken.None);
+        await RecieveResult(ws);
+   }
+
+   async Task ProcessFinalData(ClientWebSocket ws) {
         byte[] eof = Encoding.UTF8.GetBytes("{\"eof\" : 1}");
-        ws.SendAsync(new ArraySegment<byte>(eof), WebSocketMessageType.Text, true, CancellationToken.None).Wait();
-        byte[] result = new byte[4096];
-        Task<WebSocketReceiveResult> receiveTask = ws.ReceiveAsync(new ArraySegment<byte>(result), CancellationToken.None);
-        receiveTask.Wait();
-        var receivedString = Encoding.UTF8.GetString(result, 0, receiveTask.Result.Count);
-        Console.WriteLine("Result {0}", receivedString);
+        await ws.SendAsync(new ArraySegment<byte>(eof), WebSocketMessageType.Text, true, CancellationToken.None);
+        await RecieveResult(ws);
    }
 
-   public static void Main()
-   {
+   async Task DecodeFile() {
         ClientWebSocket ws = new ClientWebSocket();
-        ws.ConnectAsync(new Uri("wss://api.alphacephei.com/asr/en/"), CancellationToken.None).Wait();
+        await ws.ConnectAsync(new Uri("wss://api.alphacephei.com/asr/en/"), CancellationToken.None);
 
         FileStream fsSource = new FileStream("test.wav",
                    FileMode.Open, FileAccess.Read);
 
-        byte[] data = new byte[16000];
+        byte[] data = new byte[8000];
         while (true) {
-            int count = fsSource.Read(data, 0, 16000);
+            int count = fsSource.Read(data, 0, 8000);
             if (count == 0)
                 break;
-            ProcessData(ws, data, count);
+            await ProcessData(ws, data, count);
         }
-        ProcessFinalData(ws);
+        await ProcessFinalData(ws);
 
-        ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "OK", CancellationToken.None).Wait();
+        await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "OK", CancellationToken.None);
+   }
+
+   public static void Main() {
+        Task.Run(async () => {
+            await new ASRTest().DecodeFile();
+        }).GetAwaiter().GetResult();
    }
 }
