@@ -17,6 +17,7 @@ def play_text(agi, text):
     agi.stream_file("/tmp/%s" % (fn))
     os.remove("/tmp/%s.22.wav" % (fn)) 
     os.remove("/tmp/%s.wav" % (fn)) 
+    os.read(AUDIO_FD, 1000000) # Read remaining chunks
 
 def process_chunk(agi, ws, buf):
     ws.send_binary(buf)
